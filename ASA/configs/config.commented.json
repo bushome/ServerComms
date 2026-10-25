@@ -1,0 +1,218 @@
+// ServerComms - commented configuration.
+//
+// This file holds the same settings and values as config.json, with an explanation on each one.
+// The plugin only reads config.json. Comments are allowed there too, so you can copy this file
+// over config.json if you prefer to keep the notes.
+//
+// IDs (SteamIDs, tribe IDs, Discord role IDs) are written in quotes, e.g. "76561198000000000".
+// They are too long for JavaScript numbers, so online JSON validators and formatters such as JSONLint
+// would silently round them if they were unquoted. The plugin accepts both, but quoted is safe.
+// (Online validators also reject // comments; validate config.json, which has none.)
+//
+// After editing config.json, run ServerComms.Reload (RCON, or the in-game console as an admin) to
+// apply it without a restart. If the file has a mistake, the old settings stay active and the
+// error is written to ArkApi.log.
+{
+  // Identifies this map in the database, the Discord player list and the bot's RCON list.
+  // Empty = the -ServerKey= value on the server's launch line (the one other plugins use), or, if
+  // there is none, the map's name. Set it here only to override those.
+  "ServerKey": "",
+
+  // MariaDB/MySQL connection for the shared ServerComms database. Every map of one cluster points
+  // at the same database. On another machine, use the database machine's LAN address.
+  "Database": {
+    "Host": "127.0.0.1",
+    "Port": 3306,
+    "User": "servercomms",
+    "Password": "",
+    "Name": "servercomms"
+  },
+
+  "Chat": {
+    // Relay global chat to the other maps and Discord. Local, tribe and alliance chat are never
+    // relayed; they are styled and delivered by the game as usual.
+    "RelayGlobal": true,
+
+    // Messages starting with one of these are commands: never relayed, never shown to Discord.
+    "CommandPrefixes": [ "/" ],
+
+    // true: messages from your own map show without the map label.
+    "HideOwnMapName": false,
+
+    // true: the map label goes in the chat line's sender field (plain text, in the game's sender
+    // color; the game shows no rich text there) and the rest of the line in the message, so lines
+    // read "[Map]: [Tag] Name [Tribe]: message" with no leading ": ". Lines without a map label
+    // (own map with HideOwnMapName, local/tribe/alliance) keep the whole line in the message.
+    "UseSenderField": true,
+
+    // Local, tribe and alliance chat. "message": the game keeps its own header (name, tribe and its
+    // mode label) and only the message part is styled ([Tag] + message color). "full": the whole
+    // line is rebuilt with Formats and ModeLabels, like global chat.
+    "NonGlobalStyle": "message",
+
+    // Longer messages are cut to this many characters before relaying.
+    "MaxMessageLength": 250,
+
+    // Prefix shown on non-global chat so players can tell which mode a line was sent in.
+    // Use "" to show no label for a mode.
+    "ModeLabels": { "Local": "(LOCAL)", "Tribe": "(TRIBE)", "Alliance": "(ALLY)" },
+
+    // How a chat line is built. {mode}, {map}, {tag}, {name}, {tribe} and {message} are filled from
+    // the parts below; a part that is empty (no tag, no tribe, own map hidden) disappears with its
+    // spacing. Put separators inside the parts, not in Line.
+    // This layout gives: [Island]: [Patron] Name [Tribe]: message
+    "Formats": {
+      "Line": "{mode}{map}{tag}{name}{tribe}: {message}",
+      "Mode": "{label} ",
+      "Map": "[{label}]: ",
+      "Tag": "[{tag}] ",
+      "Name": "{name}",
+      "Tribe": " [{tribe}]"
+    }
+  },
+
+  // Map label and color by server key (the map name without _WP unless ServerKey is set). Maps not
+  // listed, or listed without a Color, show in DefaultMapColor. Colors are "R, G, B, A" from 0 to 1.
+  "Maps": {
+    "TheIsland": { "Label": "Island" },
+    "Ragnarok": { "Label": "Ragnarok" }
+  },
+  "DefaultMapColor": "1, 0.84, 0, 1",
+
+  // Label and color for messages coming from Discord.
+  "DiscordMap": { "Label": "Discord", "Color": "0, 1, 1, 0.8" },
+
+  // Platform labels by the game's platform number for a chat sender, shown in Discord and the player
+  // list. ArkApi.log names any number seen that isn't listed here, so you can add it.
+  "Platforms": { "1": "Steam" },
+
+  // false turns every chat icon off at once (then ServerComms.Reload).
+  "Icons": true,
+
+  // The only icons that will ever be sent. A rule's icon that is not listed here is skipped with a
+  // warning in ArkApi.log, so an untested icon can never crash a client. Add an icon only after
+  // ServerComms.TestIcon has shown it on a client without the DLC, on a map other than the icon's
+  // own. Base-game paths (/Game/PrimalEarth/...) are the safest choice.
+  "SafeIcons": [
+    "/Game/PrimalEarth/CoreBlueprints/Items/Artifacts/Icons/Aberration_Implant_Icon_Alpha.Aberration_Implant_Icon_Alpha"
+  ],
+
+  // How players' chat looks. Each field (Tag, Icon, colors...) comes from the highest-Priority rule
+  // that matches the player and sets that field, so a high-priority rule can set just one thing
+  // (e.g. a personal icon) and the rest falls through to lower rules.
+  //
+  // Match (any of these matches; no Match = everyone):
+  //   "Groups": [ ... ]       Permissions groups
+  //   "TribeIds": [ ... ]
+  //   "PlayerKeys": [ ... ]   EOS IDs
+  //   "AdminOnly": true       only server admins (combine with the above to narrow further)
+  // Fields:
+  //   "Tag", "TagColor"       shown as [Tag] before the name
+  //   "DiscordTag"            shown in Discord (crosschat and player list), e.g. "<Patron>"
+  //   "Icon"                  must be in SafeIcons
+  //   "NameColor", "TribeColor", "MessageColor"
+  //   "HideTribe": true       leaves the tribe name out
+  //   "Hideable": true        players can hide this rule with /hidetag (it is then skipped
+  //                           entirely: tag, icon and colors), e.g. for a Patron tag
+  "StyleRules": [
+    {
+      "Name": "Default",
+      "Priority": 0,
+      "NameColor": "0.1137, 0.949, 0.3922, 1",
+      "TribeColor": "1, 0.5686, 0, 1",
+      "MessageColor": "0.8, 0.8, 0.8, 1"
+    },
+    {
+      "Name": "Patrons",
+      "Priority": 10,
+      "Match": { "Groups": [ "Patrons" ] },
+      "Tag": "Patron",
+      "DiscordTag": "<Patron>",
+      "Icon": "/Game/PrimalEarth/CoreBlueprints/Items/Artifacts/Icons/Aberration_Implant_Icon_Alpha.Aberration_Implant_Icon_Alpha",
+      "TagColor": "0.8549, 0.7607, 0.3843, 1",
+      "NameColor": "1, 0.4824, 0, 1",
+      "TribeColor": "0.6, 0.7451, 1, 1",
+      "MessageColor": "0.6, 1, 0.7608, 1",
+      "Hideable": true
+    },
+    {
+      "Name": "Admins",
+      "Priority": 100,
+      "Match": { "Groups": [ "Admins" ] },
+      "Tag": "Admin",
+      "DiscordTag": "<Admin>",
+      "TagColor": "0.6157, 0, 1, 1",
+      "NameColor": "0.0902, 0.8157, 0.9098, 1",
+      "TribeColor": "0.8, 1, 0, 1",
+      "MessageColor": "0.2706, 1, 0.4784, 1"
+    }
+  ],
+
+  // How messages from Discord look in game. Same fields as StyleRules, matched by Discord role:
+  //   "Match": { "RoleIds": [ "123456789012345678" ] }
+  // A rule with no Match is the default for everyone else.
+  "DiscordStyles": [
+    {
+      "Name": "Discord default",
+      "Priority": 0,
+      "NameColor": "0.18, 0.8, 0.44, 1",
+      "MessageColor": "1, 1, 1, 1"
+    }
+  ],
+
+  // Global chat only; admins are exempt. A blocked message is dropped and only the sender is told
+  // when they can chat again. Spam never mutes.
+  "AntiSpam": {
+    // At most BurstMessages messages in any BurstSeconds window (fast conversation stays well under).
+    "BurstMessages": 5,
+    "BurstSeconds": 10,
+    // The same message (ignoring case, spaces and punctuation) RepeatCount times within
+    // RepeatSeconds is blocked from that copy on.
+    "RepeatCount": 3,
+    "RepeatSeconds": 30
+  },
+
+  // Blocks slurs in every chat mode. A hit drops the message, mutes the sender for MuteMinutes and
+  // tells only them why (the word is never repeated back). Patterns are regular expressions
+  // (ECMAScript), matched case-insensitively. Keep them anchored with \b so they only catch the
+  // word itself, not everyday words that contain it.
+  "WordFilter": {
+    "Enabled": true,
+    "MuteMinutes": 5,
+    "Patterns": [
+      "\\bn+[\\W_]*[i1!|\u00ec\u00ed\u00ee\u00ef]+[\\W_]*g[\\W_]*g+[\\W_]*(?:e|3|a|\u00e0|\u00e1|\u00e4)+[\\W_]*(?:r|h)*s?\\b",
+      "\\bn[e3\u00e9\u00e8\u00eb\u00ea]+g+r[o0\u00f6\u00f3\u00f2]+(?:e?s)?\\b",
+      "\\bf+[\\W_]*[a@4\u00e0\u00e1\u00e4]+[\\W_]*g+(?:s|g?[o0]ts?)?\\b",
+      "\\bc+[u\u00fc\u00fa\u00f9]+n+t+s?\\b",
+      "\\bh[o0]m[o0]s?\\b",
+      "\\br[a@4]+p(?:e[sd]?|ist|ing)\\b",
+      "\\bk+y+s+\\b"
+    ]
+  },
+
+  // In-game commands. /linkDiscord <code> completes a link started from the Discord panel.
+  "Commands": {
+    "Link": "/linkDiscord",
+    "HideTag": "/hidetag",
+    "ShowTag": "/showtag",
+    "Ignore": "/ignore",
+    "Unignore": "/unignore"
+  },
+
+  "Intervals": {
+    // How often new messages from other maps and Discord are fetched.
+    "PollSeconds": 1,
+    // How often this map reports itself online and syncs its player list. The bot shows a map as
+    // Offline after 60 seconds without a heartbeat.
+    "HeartbeatSeconds": 15,
+    // Outgoing messages kept in memory while the database is unreachable; oldest dropped first.
+    "OutboxCapacity": 500
+  },
+
+  "Diagnostics": {
+    // ArkApi.log gets a warning (at most once a minute) when the plugin's per-second work on the
+    // game thread takes longer than this many milliseconds. Database work never counts: it runs on
+    // a separate thread.
+    "SlowTickMs": 2
+  }
+}

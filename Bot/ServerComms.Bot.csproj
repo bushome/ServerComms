@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ServerComms.Bot</RootNamespace>
+    <AssemblyName>ServerComms.Bot</AssemblyName>
+
+    <!-- Framework-dependent single-file publish, like the update monitor: the .NET 10 Runtime must be
+         installed on the server. Output: bin/Release/net10.0/win-x64/publish/ -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- Pack native libraries (the runtimes\ folder) into the exe too, so a publish is one file. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+    <!-- Not InvariantGlobalization: Discord.Net creates a CultureInfo for each guild's locale. -->
+
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Floating versions: restore takes the newest release in that major line. Pin them once the
+         first build works (the resolved versions are in obj/project.assets.json). -->
+    <PackageReference Include="Discord.Net" Version="3.20.2" />
+    <PackageReference Include="MySqlConnector" Version="2.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Schema migrations ship inside the exe and are applied in order on startup. -->
+    <EmbeddedResource Include="schema\*.sql" LogicalName="schema/%(Filename)%(Extension)" />
+    <None Include="appsettings.example.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

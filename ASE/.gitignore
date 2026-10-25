@@ -1,0 +1,9 @@
+out/
+.vs/
+vcpkg_installed/
+*.user
+tests/*.exe
+tests/*.obj
+logic_tests
+logic_tests.exe
+logic_tests.obj

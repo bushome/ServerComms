@@ -1,0 +1,8 @@
+bin/
+obj/
+logs/
+appsettings.json
+*.user
+.vs/
+out/
+UpgradeLog.htm

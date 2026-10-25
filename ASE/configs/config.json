@@ -1,0 +1,135 @@
+{
+  "ServerKey": "",
+  "Database": {
+    "Host": "127.0.0.1",
+    "Port": 3306,
+    "User": "servercomms",
+    "Password": "",
+    "Name": "servercomms"
+  },
+  "Chat": {
+    "RelayGlobal": true,
+    "CommandPrefixes": [
+      "/"
+    ],
+    "HideOwnMapName": false,
+    "UseSenderField": false,
+    "NonGlobalStyle": "full",
+    "MaxMessageLength": 250,
+    "ModeLabels": {
+      "Local": "(LOCAL)",
+      "Tribe": "(TRIBE)",
+      "Alliance": "(ALLY)"
+    },
+    "Formats": {
+      "Line": "{mode}{map}{tag}{name}{tribe} : {message}",
+      "Mode": "{label} ",
+      "Map": "({label}) ",
+      "Tag": "[{tag}] ",
+      "Name": "{name}",
+      "Tribe": " [{tribe}]"
+    }
+  },
+  "Maps": {
+    "TheIsland": {
+      "Label": "Island",
+      "Color": "0, 1, 0, 1"
+    },
+    "Ragnarok": {
+      "Label": "Ragnarok",
+      "Color": "0.549, 0.549, 0.549, 1"
+    }
+  },
+  "DefaultMapColor": "1, 1, 1, 1",
+  "DiscordMap": {
+    "Label": "Discord",
+    "Color": "0, 1, 1, 0.8"
+  },
+  "Icons": true,
+  "SafeIcons": [
+    "/Game/PrimalEarth/CoreBlueprints/Items/Artifacts/Icons/Aberration_Implant_Icon_Alpha.Aberration_Implant_Icon_Alpha"
+  ],
+  "StyleRules": [
+    {
+      "Name": "Default",
+      "Priority": 0,
+      "NameColor": "0.1137, 0.949, 0.3922, 1",
+      "TribeColor": "1, 0.5686, 0, 1",
+      "MessageColor": "0.8, 0.8, 0.8, 1"
+    },
+    {
+      "Name": "Patrons",
+      "Priority": 10,
+      "Match": {
+        "Groups": [
+          "Patrons"
+        ]
+      },
+      "Tag": "Patron",
+      "DiscordTag": "<Patron>",
+      "Icon": "/Game/PrimalEarth/CoreBlueprints/Items/Artifacts/Icons/Aberration_Implant_Icon_Alpha.Aberration_Implant_Icon_Alpha",
+      "TagColor": "0.8549, 0.7607, 0.3843, 1",
+      "NameColor": "1, 0.4824, 0, 1",
+      "TribeColor": "0.6, 0.7451, 1, 1",
+      "MessageColor": "0.6, 1, 0.7608, 1",
+      "Hideable": true
+    },
+    {
+      "Name": "Admins",
+      "Priority": 100,
+      "Match": {
+        "Groups": [
+          "Admins"
+        ]
+      },
+      "Tag": "Admin",
+      "DiscordTag": "<Admin>",
+      "TagColor": "0.6157, 0, 1, 1",
+      "NameColor": "0.0902, 0.8157, 0.9098, 1",
+      "TribeColor": "0.8, 1, 0, 1",
+      "MessageColor": "0.2706, 1, 0.4784, 1"
+    }
+  ],
+  "DiscordStyles": [
+    {
+      "Name": "Discord default",
+      "Priority": 0,
+      "NameColor": "0.18, 0.8, 0.44, 1",
+      "MessageColor": "1, 1, 1, 1"
+    }
+  ],
+  "AntiSpam": {
+    "BurstMessages": 5,
+    "BurstSeconds": 10,
+    "RepeatCount": 3,
+    "RepeatSeconds": 30
+  },
+  "WordFilter": {
+    "Enabled": true,
+    "MuteMinutes": 5,
+    "Patterns": [
+      "\\bn+[\\W_]*[i1!|ìíîï]+[\\W_]*g[\\W_]*g+[\\W_]*(?:e|3|a|à|á|ä)+[\\W_]*(?:r|h)*s?\\b",
+      "\\bn[e3éèëê]+g+r[o0öóò]+(?:e?s)?\\b",
+      "\\bf+[\\W_]*[a@4àáä]+[\\W_]*g+(?:s|g?[o0]ts?)?\\b",
+      "\\bc+[uüúù]+n+t+s?\\b",
+      "\\bh[o0]m[o0]s?\\b",
+      "\\br[a@4]+p(?:e[sd]?|ist|ing)\\b",
+      "\\bk+y+s+\\b"
+    ]
+  },
+  "Commands": {
+    "Link": "/linkDiscord",
+    "HideTag": "/hidetag",
+    "ShowTag": "/showtag",
+    "Ignore": "/ignore",
+    "Unignore": "/unignore"
+  },
+  "Intervals": {
+    "PollSeconds": 1,
+    "HeartbeatSeconds": 15,
+    "OutboxCapacity": 500
+  },
+  "Diagnostics": {
+    "SlowTickMs": 2
+  }
+}
