@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Discord;
 using Discord.WebSocket;
@@ -171,8 +172,23 @@ public sealed class Crosschat : BackgroundService
             .Replace("{tag}", Format.Sanitize(tag))
             .Replace("{name}", Format.Sanitize(name))
             .Replace("{tribe}", tribePart)
-            .Replace("{message}", Format.Sanitize(text));
+            .Replace("{message}", Format.Sanitize(EmotesToText(text)));
     }
+
+    // In-game emotes arrive as <img src="Chat.image" path="/Game/PrimalEarth/Emo/Emo_Wink"/>;
+    // Discord gets "(wink)" instead of the tag.
+    private static readonly Regex EmoteTag = new(
+        @"<img\s+src\s*=\s*""Chat\.image""\s+path\s*=\s*""[^""]*?([A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+)?""\s*/?>",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static string EmotesToText(string text) =>
+        EmoteTag.Replace(text, m =>
+        {
+            var name = m.Groups[1].Value;
+            if (name.StartsWith("Emo_", StringComparison.OrdinalIgnoreCase))
+                name = name[4..];
+            return "(" + name.Replace('_', ' ').ToLowerInvariant() + ")";
+        });
 
     private async Task RefreshMapNamesAsync(CancellationToken ct)
     {
@@ -240,7 +256,7 @@ public sealed class Crosschat : BackgroundService
         {
             var text = message is IUserMessage um
                 ? um.Resolve(TagHandling.NameNoPrefix, TagHandling.NameNoPrefix, TagHandling.NameNoPrefix,
-                    TagHandling.NameNoPrefix, TagHandling.NameNoPrefix)
+                    TagHandling.NameNoPrefix, TagHandling.Ignore)      // custom emoji stay <:name:id> for EmojiToGame
                 : message.Content;
             text = text.Replace('\n', ' ').Trim();
             if (message.Attachments.Count > 0)
@@ -249,6 +265,10 @@ public sealed class Crosschat : BackgroundService
                 continue;
             if (text.Length > _chat.MaxLengthToGame)
                 text = text[.._chat.MaxLengthToGame];
+            // After the cut, so an inline image tag is never split.
+            text = EmojiToGame(text);
+            if (text.Length == 0)
+                continue;
 
             var name = message.Author is SocketGuildUser member ? member.DisplayName : message.Author.Username;
             var roles = message.Author is SocketGuildUser m
@@ -278,6 +298,87 @@ public sealed class Crosschat : BackgroundService
                 }
             }
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Discord emoji -> game
+    // ---------------------------------------------------------------------------------------------
+
+    // The game font has no emoji. Mapped ones become one of the game's emoticons (which the plugin
+    // draws as its emote images) or an inline texture; other emoji are left out.
+    private static readonly Regex CustomEmoji = new(@"<a?:([A-Za-z0-9_~]+):\d+>", RegexOptions.Compiled);
+    private static readonly Regex Spaces = new(" {2,}", RegexOptions.Compiled);
+
+    private static readonly Dictionary<string, string> DefaultEmoji = BuildDefaultEmoji();
+
+    private static Dictionary<string, string> BuildDefaultEmoji()
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        void Add(string game, params string[] emoji) { foreach (var e in emoji) map[e] = game; }
+        Add(":)", "🙂", "😊", "☺", "😇", "🙃", "🥰", "😌");
+        Add(":D", "😀", "😃", "😄", "😁", "😆", "😂", "🤣", "😅");
+        Add(";)", "😉", "😏");
+        Add(":P", "😛", "😜", "😝", "😋", "🤪");
+        Add(":(", "🙁", "☹", "😞", "😔", "😟", "😢", "😭", "😿");
+        Add(">:)", "😈", "👿");
+        Add(":|", "😐", "😑", "😶", "🫤");
+        Add(":o", "😮", "😯", "😲", "😱", "😳", "🫢");
+        return map;
+    }
+
+    private string EmojiToGame(string text)
+    {
+        text = CustomEmoji.Replace(text, m => LookupEmoji(m.Groups[1].Value) ?? ":" + m.Groups[1].Value + ":");
+
+        var sb = new StringBuilder(text.Length);
+        var dropped = false;
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            var element = (string)elements.Current;
+            if (element.Length == 1 && element[0] < 0x80)
+            {
+                sb.Append(element);
+                continue;
+            }
+            if (LookupEmoji(EmojiKey(element)) is { } mapped)
+                sb.Append(mapped);
+            else if (IsEmoji(element))
+                dropped = true;
+            else
+                sb.Append(element);
+        }
+        var result = Spaces.Replace(sb.ToString(), " ").Trim();
+        return result.Length == 0 && dropped ? "(emoji)" : result;
+    }
+
+    private string? LookupEmoji(string key)
+    {
+        if (key.Length == 0 || !(_chat.EmojiToGame.TryGetValue(key, out var game) || DefaultEmoji.TryGetValue(key, out game)))
+            return null;
+        return game.StartsWith("/Game/", StringComparison.Ordinal) ? $"<img src=\"Chat.Image\" path=\"{game}\"/>" : game;
+    }
+
+    // The emoji without variation selectors and skin tones, so 👍🏽 and 👍 look up the same.
+    private static string EmojiKey(string element)
+    {
+        var sb = new StringBuilder(element.Length);
+        foreach (var rune in element.EnumerateRunes())
+            if (rune.Value != 0xFE0F && rune.Value is < 0x1F3FB or > 0x1F3FF)
+                sb.Append(rune.ToString());
+        return sb.ToString();
+    }
+
+    private static bool IsEmoji(string element)
+    {
+        foreach (var rune in element.EnumerateRunes())
+        {
+            var v = rune.Value;
+            if (v is >= 0x1F000 and <= 0x1FAFF or >= 0x2600 and <= 0x27BF or >= 0x2300 and <= 0x23FF
+                or >= 0x2B00 and <= 0x2BFF or 0x200D or 0xFE0F or 0x3030 or 0x303D or 0x00A9 or 0x00AE or 0x2122)
+                return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------------------------------------

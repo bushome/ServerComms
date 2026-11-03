@@ -91,10 +91,27 @@ public sealed class DiscordConnection : IHostedService
             level = LogLevel.Debug;
         if (m.Exception is GatewayReconnectException)
             level = LogLevel.Debug;
+        // Dropped socket ("closed without completing the close handshake"): Discord or the network cut the
+        // connection and the library reconnects on its own. Discord's own close codes (bad token, missing
+        // intents) arrive as WebSocketClosedException instead and still warn.
+        if (m.Source == "Gateway" && IsDroppedSocket(m.Exception))
+            level = LogLevel.Debug;
         // Rate-limit notices are expected and handled by the library.
         if (m.Message?.Contains("Rate limit", StringComparison.OrdinalIgnoreCase) == true && level == LogLevel.Warning)
             level = LogLevel.Debug;
         _logger.Log(level, m.Exception, "[{Source}] {Message}", m.Source, m.Message ?? m.Exception?.Message);
         return Task.CompletedTask;
+    }
+
+    private static bool IsDroppedSocket(Exception? e)
+    {
+        for (; e is not null; e = e.InnerException)
+        {
+            if (e is Discord.Net.WebSocketClosedException)
+                return false;
+            if (e is System.Net.WebSockets.WebSocketException or System.IO.IOException or System.Net.Sockets.SocketException)
+                return true;
+        }
+        return false;
     }
 }

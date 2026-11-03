@@ -52,6 +52,28 @@ static void TestEscapeAndDuration()
 {
 	const std::wstring e = EscapeRich(L"<RichColor Color=\"1,0,0,1\">admin</>");
 	CHECK(e.find(L'<') == std::wstring::npos);
+
+	// Emotes: image tags and text emoticons are drawn outside the colored runs.
+	const std::wstring wink = L"<img src=\"Chat.Image\" path=\"/Game/PrimalEarth/Emo/Emo_Wink.Emo_Wink\"/>";
+	const std::wstring smile = L"<img src=\"Chat.Image\" path=\"/Game/PrimalEarth/Emo/Emo_Smile.Emo_Smile\"/>";
+	const std::wstring evil = L"<img src=\"Chat.Image\" path=\"/Game/PrimalEarth/Emo/Emo_Evil.Emo_Evil\"/>";
+	CHECK(ColoredMessage(L"hi ;) <b>", "1,0,0,1") ==
+		L"<RichColor Color=\"1,0,0,1\">hi </>" + wink + L"<RichColor Color=\"1,0,0,1\"> \x2039" L"b></>");
+	CHECK(ColoredMessage(L":)", "1,0,0,1") == smile);
+	CHECK(ColoredMessage(L">:)", "") == evil);
+	CHECK(ColoredMessage(L":p", "").find(L"Emo_Tongue") != std::wstring::npos);
+	CHECK(ColoredMessage(wink, "") == wink);
+	CHECK(ColoredMessage(L"<img src=\"Chat.image\" path=\"/Game/A/B\" />x", "") == L"<img src=\"Chat.Image\" path=\"/Game/A/B\"/>x");
+	CHECK(ColoredMessage(L"XD", "1,0,0,1") == L"<RichColor Color=\"1,0,0,1\">XD</>");
+	// Anything else that looks like an image stays escaped.
+	CHECK(ColoredMessage(L"<img src=\"Other\" path=\"/Game/A\"/>", "").find(L'<') == std::wstring::npos);
+	CHECK(ColoredMessage(L"<img src=\"Chat.image\" path=\"C:/x\"/>", "").find(L'<') == std::wstring::npos);
+	CHECK(ColoredMessage(L"<img src=\"Chat.image\" path=\"/Game/A\"><RichColor>", "").find(L"<RichColor") == std::wstring::npos);
+	// No emoticon text is left for the client to find, even across our markup.
+	const std::wstring mixed = ColoredMessage(L"a :) b :( c :| d :D", "1,0,0,1");
+	for (const wchar_t* e : { L":)", L":(", L":|", L":D" })
+		CHECK(mixed.find(e) == std::wstring::npos);
+
 	CHECK(FormatDuration(45) == "45s");
 	CHECK(FormatDuration(192) == "3m 12s");
 	CHECK(FormatDuration(300) == "5m");

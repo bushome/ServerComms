@@ -91,6 +91,11 @@ public sealed class CrosschatOptions
     /// <summary>Discord messages longer than this are cut before they go in game.</summary>
     public int MaxLengthToGame { get; set; } = 250;
 
+    /// <summary>Discord emoji -> game. Key: a unicode emoji, or a custom server emoji's name (no colons).
+    /// Value: one of the game's emoticons (":)", ";)", ":D", ":(", ">:)", ":|", ":o", ":P") or a texture
+    /// path starting with /Game/, drawn as an inline image. Adds to and overrides the built-in list.</summary>
+    public Dictionary<string, string> EmojiToGame { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>After an outage, at most this many backlog lines are posted; older ones are summarised.</summary>
     public int MaxCatchUpLines { get; set; } = 50;
 

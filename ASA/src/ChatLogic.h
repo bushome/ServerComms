@@ -208,6 +208,82 @@ namespace ServerComms
 		return L"<RichColor Color=\"" + Utf8ToWide(color) + L"\">" + text + L"</>";
 	}
 
+	// Chat emotes. The client turns text emoticons into <img src="Chat.Image" path="..."/> tags when it
+	// draws a message, anywhere in the string. Inside a <RichColor> run that breaks the line (tags don't
+	// nest), and it even matches across our own markup (the '>' closing a tag plus ":)" reads as ">:)").
+	// So emoticons are turned into image tags here, outside the colored runs, and no emoticon text is
+	// left for the client to find. An image tag already in the message is kept if it has exactly this
+	// shape with a /Game/ asset path; anything else is escaped like all player text.
+	inline const std::wregex& EmoteRegex()
+	{
+		static const std::wregex re(
+			LR"re(<img\s+src\s*=\s*"Chat\.image"\s+path\s*=\s*"(/Game/[A-Za-z0-9_/]+(?:\.[A-Za-z0-9_]+)?)"\s*/?>)re",
+			std::regex::icase | std::regex::optimize);
+		return re;
+	}
+
+	inline std::wstring EmoteTag(const std::wstring& path)
+	{
+		return L"<img src=\"Chat.Image\" path=\"" + path + L"\"/>";
+	}
+
+	// The game's text emoticons, longest first so ">:)" wins over ":)". Letters match either case.
+	struct Emoticon { const wchar_t* text; const wchar_t* asset; };
+	inline constexpr Emoticon kEmoticons[] = {
+		{ L">:)", L"Emo_Evil" }, { L":)", L"Emo_Smile" }, { L";)", L"Emo_Wink" }, { L":D", L"Emo_Laugh" },
+		{ L":(", L"Emo_Sad" }, { L":|", L"Emo_Blank" }, { L":O", L"Emo_Eyes" }, { L":P", L"Emo_Tongue" },
+	};
+
+	// Length of the emoticon at text[pos], or 0; sets asset.
+	inline size_t MatchEmoticon(const std::wstring& text, size_t pos, std::wstring& asset)
+	{
+		for (const auto& e : kEmoticons)
+		{
+			const size_t n = std::char_traits<wchar_t>::length(e.text);
+			if (pos + n > text.size())
+				continue;
+			bool same = true;
+			for (size_t i = 0; i < n && same; ++i)
+				same = std::towupper(text[pos + i]) == std::towupper(e.text[i]);
+			if (same)
+			{
+				asset = e.asset;
+				return n;
+			}
+		}
+		return 0;
+	}
+
+	// Escapes and colors player text, with emotes drawn as images between the colored runs.
+	inline std::wstring ColoredMessage(const std::wstring& text, const std::string& color)
+	{
+		std::wstring out, run;
+		const auto flush = [&] { out += Colored(EscapeRich(run), color); run.clear(); };
+		for (size_t i = 0; i < text.size();)
+		{
+			std::wsmatch m;
+			if (text[i] == L'<' &&
+				std::regex_search(text.cbegin() + static_cast<std::ptrdiff_t>(i), text.cend(), m, EmoteRegex(), std::regex_constants::match_continuous))
+			{
+				flush();
+				out += EmoteTag(m.str(1));
+				i += static_cast<size_t>(m.length(0));
+				continue;
+			}
+			std::wstring asset;
+			if (const size_t n = MatchEmoticon(text, i, asset))
+			{
+				flush();
+				out += EmoteTag(L"/Game/PrimalEarth/Emo/" + asset + L"." + asset);
+				i += n;
+				continue;
+			}
+			run += text[i++];
+		}
+		flush();
+		return out;
+	}
+
 	// ------------------------------------------------------------------------------------------
 	// Settings
 	// ------------------------------------------------------------------------------------------
@@ -744,7 +820,7 @@ namespace ServerComms
 		if (!in.tribe.empty() && !st.hide_tribe)
 			tribe = Colored(FillPart(s.formats.tribe, "tribe", EscapeRich(in.tribe)), st.tribe_color);
 
-		const std::wstring message = Colored(EscapeRich(in.message), st.message_color);
+		const std::wstring message = ColoredMessage(in.message, st.message_color);
 
 		std::wstring line = Utf8ToWide(s.formats.line);
 		ReplaceAll(line, L"{mode}", mode);
@@ -795,7 +871,7 @@ namespace ServerComms
 		std::wstring out;
 		if (!st.tag.empty())
 			out = Colored(FillPart(s.formats.tag, "tag", Utf8ToWide(st.tag)), st.tag_color);
-		return out + Colored(EscapeRich(message), st.message_color);
+		return out + ColoredMessage(message, st.message_color);
 	}
 
 	// ------------------------------------------------------------------------------------------
