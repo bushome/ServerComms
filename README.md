@@ -48,3 +48,8 @@ its own schema migrations. `src/ChatLogic.h` is the same in both plugin folders 
 Releases ship three zips: `ServerComms-ASA.zip`, `ServerComms-ASE.zip` and `ServerComms.Bot.zip`
 (the self-contained bot, no .NET install needed). Install, commands, configuration and build steps
 are in each folder's README.
+
+## Development
+
+Developed with AI assistance (Claude). Every change was reviewed and tested on a dedicated test server
+before going live.
