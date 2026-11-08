@@ -1,7 +1,7 @@
 {
   "FullName": "ServerComms",
   "Description": "Cross-server global chat with Discord relay, chat styling, anti-spam, word filter and mutes",
-  "Version": 1.0,
-  "MinApiVersion": 2.03,
+  "Version": 1.1,
+  "MinApiVersion": 2.1,
   "Dependencies": []
 }
