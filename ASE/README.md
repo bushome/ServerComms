@@ -5,12 +5,16 @@ for what the plugin does; this file covers building, installing and running the 
 
 ## Build
 
+**Shared API checkout (optional):** the project builds against `extern\AseApi` by default. To build several plugins against one shared AseApi checkout instead, set the MSBuild property `AseApiDir` to that folder, for example in a `Directory.Build.props` placed above the repo; the submodule then doesn't need to be checked out.
+
 1. `git submodule update --init --recursive` (fetches `extern/AseApi`; `ArkApi.lib` ships in it).
 2. Open `ServerComms.sln` in Visual Studio 2026 and build **Release | x64**. vcpkg (bundled with Visual
    Studio) installs libmariadb from `vcpkg.json` on the first build.
 3. The ready-to-install plugin folder is `out\ServerComms\`.
 
 ## Install
+
+**VC++ runtime:** built with the v145 toolset (Visual Studio 2026) and `_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR`, so it also runs on servers with an older Visual C++ runtime. If the server crashes inside `std::mutex` or reports a missing `msvcp140.dll` entry point after installing, install the current Visual C++ Redistributable (x64).
 
 1. Copy `out\ServerComms\` to `ShooterGame\Binaries\Win64\ArkApi\Plugins\ServerComms\` on every map.
 2. Create the database and a user for it (`servercomms` by default). ServerComms.Bot creates the

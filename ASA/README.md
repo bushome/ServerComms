@@ -5,6 +5,8 @@ for what the plugin does; this file covers building, installing and running the 
 
 ## Build
 
+**Shared API checkout (optional):** the project builds against `extern\AsaApi` by default. To build several plugins against one shared AsaApi checkout instead, set the MSBuild property `AsaApiDir` to that folder, for example in a `Directory.Build.props` placed above the repo; the submodule then doesn't need to be checked out.
+
 1. `git submodule update --init --recursive` (fetches `extern/AsaApi`), then build `extern\AsaApi\AsaApi.sln`
    (Release | x64) for `extern\AsaApi\out_lib\AsaApi.lib`, or copy it from the AsaApi release zip's `Lib` folder.
 2. Open `ServerComms.sln` in Visual Studio 2026 and build **Release | x64**. vcpkg (bundled with Visual
@@ -12,6 +14,8 @@ for what the plugin does; this file covers building, installing and running the 
 3. The ready-to-install plugin folder is `out\ServerComms\`.
 
 ## Install
+
+**VC++ runtime:** built with the v145 toolset (Visual Studio 2026) and `_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR`, the same as AsaApi, so it also runs on servers with an older Visual C++ runtime. If the server crashes inside `std::mutex` or reports a missing `msvcp140.dll` entry point after installing, update the VC++ runtime DLLs in `ShooterGame\Binaries\Win64` (the latest files are in [ASABinaries](https://github.com/bushome/ASABinaries)) or install the current Visual C++ Redistributable (x64).
 
 1. Copy `out\ServerComms\` to `ShooterGame\Binaries\Win64\ArkApi\Plugins\ServerComms\` on every map.
 2. Create the database and a user for it (`servercomms` by default). ServerComms.Bot creates the
