@@ -25,7 +25,10 @@
     "Port": 3306,
     "User": "servercomms",
     "Password": "",
-    "Name": "servercomms"
+    "Name": "servercomms",
+    // true: require TLS to the database (a self-signed server certificate is accepted). Leave false
+    // for a MariaDB on the same machine or LAN without TLS set up.
+    "Ssl": false
   },
 
   "Chat": {
@@ -83,7 +86,8 @@
   "DiscordMap": { "Label": "Discord", "Color": "0, 1, 1, 0.8" },
 
   // Platform labels by the game's platform number for a chat sender, shown in Discord and the player
-  // list. ArkApi.log names any number seen that isn't listed here, so you can add it.
+  // list. ArkApi.log names any number seen that isn't listed here, so you can add it. 0 is sent when
+  // the client reports no store (seen from Steam players on Linux/Proton); e.g. "0": "PC".
   "Platforms": { "1": "Steam" },
 
   // false turns every chat icon off at once (then ServerComms.Reload).
@@ -197,6 +201,31 @@
     "ShowTag": "/showtag",
     "Ignore": "/ignore",
     "Unignore": "/unignore"
+  },
+
+  // What the plugin says to players (sent privately, from Sender). Placeholders: {time} how long
+  // until they can chat again, {reason} the mute reason, {command} the command typed, {tag} the
+  // rule's tag, {name} a player name, {choice} what they typed. Any text left out keeps its default.
+  "Messages": {
+    "Sender": "ServerComms",
+    "Spam": "Slow down, you can chat again in {time}.",
+    "BlockedWord": "Your message wasn't sent: it contained a blocked word. You're muted for {time}.",
+    "Muted": "You're muted (reason: {reason}). {time} left.",
+    "MutedPermanent": "You're muted (reason: {reason}).",
+    "LinkSyntax": "Usage: {command} <code>. Get a code from the Link button in Discord.",
+    "LinkChecking": "Checking your code...",
+    "LinkSuccess": "Your Discord account is now linked.",
+    "LinkInvalid": "That code is invalid or has expired. Get a new one from Discord.",
+    "LinkAlready": "You're already linked.",
+    "TagHidden": "Your {tag} tag is now hidden.",
+    "TagShown": "Your {tag} tag is now shown.",
+    "TagNone": "You don't have a tag that can be hidden.",
+    "IgnorePick": "Pick a player with {command} #:",
+    "IgnoreNone": "Nobody has talked recently.",
+    "IgnoreDone": "You're now ignoring {name}.",
+    "UnignoreDone": "You're no longer ignoring {name}.",
+    "UnignoreNone": "You're not ignoring anyone.",
+    "IgnoreBadChoice": "'{choice}' isn't one of the listed numbers."
   },
 
   "Intervals": {
