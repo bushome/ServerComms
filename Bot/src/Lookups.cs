@@ -38,11 +38,17 @@ public sealed class Lookups
     public bool HasPlayerLogin => _options.Lookups.PlayerLogin.Database.Length > 0;
 
     /// <summary>The player's Permissions groups, or null when the lookup failed.</summary>
+    /// <summary>Why the last GetGroupsAsync returned null.</summary>
+    public string LastGroupsError { get; private set; } = "";
+
     public async Task<HashSet<string>?> GetGroupsAsync(string playerKey, CancellationToken ct)
     {
         var p = _options.Lookups.Permissions;
         if (!HasPermissions)
+        {
+            LastGroupsError = "Lookups:Permissions:Database is empty";
             return null;
+        }
         try
         {
             var value = await ScalarAsync(
@@ -51,8 +57,9 @@ public sealed class Lookups
             return (value as string ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception e)
         {
+            LastGroupsError = e.Message;
             return null;
         }
     }

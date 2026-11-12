@@ -307,6 +307,8 @@ public sealed class Linking : BackgroundService, IInteractionModule
         }
     }
 
+    private string _lastAutoUnlinkError = "";
+
     private async Task AutoUnlinkAsync(CancellationToken ct)
     {
         if (_link.AutoUnlinkDays <= 0)
@@ -329,13 +331,23 @@ public sealed class Linking : BackgroundService, IInteractionModule
                 var groups = await _lookups.GetGroupsAsync(key, ct);
                 if (groups is null)
                 {
-                    _logger.LogWarning("Auto-unlink skipped: Permissions lookup failed (check Lookups:Permissions)");
+                    // Warn once per distinct problem; the hourly repeats of the same one go to Debug.
+                    var error = _lookups.LastGroupsError;
+                    _logger.Log(error == _lastAutoUnlinkError ? LogLevel.Debug : LogLevel.Warning,
+                        "Auto-unlink skipped: Permissions lookup failed: {Error}. KeepGroups needs Lookups:Permissions " +
+                        "(database, table, columns, and SELECT for the bot's login)", error);
+                    _lastAutoUnlinkError = error;
                     return;   // never unlink a possible Vacation member on a failed lookup
                 }
                 if (_link.KeepGroups.Any(groups.Contains))
                     continue;
             }
             await UnlinkAsync(discordId, $"not seen in game for {_link.AutoUnlinkDays} days");
+        }
+        if (_lastAutoUnlinkError.Length > 0 && (_link.KeepGroups.Count == 0 || stale.Count > 0))
+        {
+            _logger.LogInformation("Auto-unlink: Permissions lookup working again");
+            _lastAutoUnlinkError = "";
         }
     }
 }
